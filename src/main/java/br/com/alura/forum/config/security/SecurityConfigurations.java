@@ -14,12 +14,20 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+import br.com.alura.forum.repository.UsuarioRepository;
+
 @EnableWebSecurity
 @Configuration
 public class SecurityConfigurations extends WebSecurityConfigurerAdapter{
 	
 	@Autowired
 	private AutenticacaoService autenticacaoService;
+	
+	@Autowired
+	private TokenService tokenService;
+	
+	@Autowired
+	private UsuarioRepository usuarioRepository;
 	
 	@Override
 	@Bean
@@ -42,16 +50,18 @@ public class SecurityConfigurations extends WebSecurityConfigurerAdapter{
 		.antMatchers(HttpMethod.GET, "/topicos").permitAll()
 		.antMatchers(HttpMethod.GET, "/topicos/*").permitAll()
 		.antMatchers(HttpMethod.POST, "/auth").permitAll()
+		.antMatchers(HttpMethod.GET, "/actuator/**").permitAll() //nao é seguro deixar o actuator como permitAll, mas pra teste deixamos assim
 		.anyRequest().authenticated()
 		.and().csrf().disable() //desabilitar validação de Cross-site request forgery (ataque hacker) pois a aplicação será stetaless
 		.sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS) //ao fazer autenticação, nao criar sessão
-		.and().addFilterBefore(new AutenticacaoViaTokenFilter(), UsernamePasswordAuthenticationFilter.class); //antes de fazer a autenticacao do spring, usar nosso filtro
+		.and().addFilterBefore(new AutenticacaoViaTokenFilter(tokenService, usuarioRepository), UsernamePasswordAuthenticationFilter.class); //antes de fazer a autenticacao do spring, usar nosso filtro
 	}
 	
 	//Configurações de recursos estáticos (js, css, imagens, etc)
 	@Override
 	public void configure(WebSecurity web) throws Exception {
-
+		 web.ignoring()
+	        .antMatchers("/**.html", "/v2/api-docs", "/webjars/**", "/configuration/**", "/swagger-resources/**");
 	}
 
 }

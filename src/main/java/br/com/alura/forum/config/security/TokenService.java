@@ -7,6 +7,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
 import br.com.alura.forum.modelo.Usuario;
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 
@@ -16,7 +17,7 @@ public class TokenService {
 	@Value("${forum.jwt.expiration}") //pega pelo application properties
 	private String expiration;
 	
-	@Value("${forum.jwt.secret}") //pega pelo application properties
+	@Value("${forum.jwt.secret}") //pega pelo application properties, é a chave q a lib usa para criptografar e descriptografar os tokens
 	private String secret;
 
 	public String gerarToken(Authentication authentication) {
@@ -32,6 +33,22 @@ public class TokenService {
 				.setExpiration(dataExpiracao) //quando vai expirar?
 				.signWith(SignatureAlgorithm.HS256, secret)
 				.compact();
+	}
+
+	public boolean isTokenValido(String token) {
+		
+		try {
+			Jwts.parser().setSigningKey(secret).parseClaimsJws(token); //ao fazer o parse, se nao estiver valido ele estoura exception
+			return true;
+		} catch (Exception e) {
+			return false;
+		}		
+		
+	}
+
+	public Long getIdUsuario(String token) {
+		Claims claims = Jwts.parser().setSigningKey(secret).parseClaimsJws(token).getBody();
+		return Long.parseLong(claims.getSubject());
 	}	
 	
 }
